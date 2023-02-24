@@ -74,7 +74,7 @@ $result_hhs_fed_hos = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?
 $result_interest_on_treasury_securities = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Interest on Treasury Securities') 
 $result_taxes_individual_tax_refunds    = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Individual Tax Refunds (EFT)') 
 $result_taxes_withheld_individual_fica  = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Withheld Individual/FICA')
-
+$result_defense_vendor_payments         = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Defense Vendor Payments (EFT)')
 
 
 
@@ -127,25 +127,6 @@ function negative ($val)
 
 # ----------------------------------------------------------------------
 
-# Normalize 'Taxes - Individual Tax Refunds (EFT)'
-
-$result_taxes_individual_tax_refunds_ = foreach ($row in $result_sub_total_change)
-{
-    [PSCustomObject]@{
-        record_date = $row.record_date
-        transaction_today_amt = $null
-    }
-}
-
-foreach ($row in $result_taxes_individual_tax_refunds.data)
-{
-    $entry = $result_taxes_individual_tax_refunds_ | Where-Object record_date -EQ $row.record_date | Select-Object -First 1
-
-    $entry.transaction_today_amt = $row.transaction_today_amt
-}
-
-# ----------------------------------------------------------------------
-
 function normalize-data ($obj)
 {
     $ls = foreach ($row in $result_sub_total_change)
@@ -165,13 +146,9 @@ function normalize-data ($obj)
 
     $ls
 }
-
-# $result_federal_tax_deposits_ = normalize-data $result_federal_tax_deposits
-
-
-
-
 # ----------------------------------------------------------------------
+
+$fill = $false
 
 $json = @{
     chart = @{
@@ -180,26 +157,26 @@ $json = @{
         data = @{
             labels = $result_pdc_change.ForEach({ $_.record_date })
             datasets = @(
-                @{ label = 'Public Debt Cash Change';                  data = $result_pdc_change.ForEach({                                     $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }
-                @{ label = 'Sub-total Change';                         data = $result_sub_total_change.ForEach({                               $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }
-                # @{ label = 'Federal Tax Deposits';                     data = $result_federal_tax_deposits.data.ForEach({                      $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }
-                # @{ label = 'Federal Tax Deposits';                     data = $result_federal_tax_deposits_.ForEach({                      $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }
+                @{ label = 'Public Debt Cash Change';                  data =                 $result_pdc_change.ForEach({                                     $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = 'Sub-total Change';                         data =                 $result_sub_total_change.ForEach({                               $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = "Cash FTD's Received (Table IV)";           data = (normalize-data $result_cash_ftds_received_table_iv   ).ForEach({                $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = 'Taxes - Withheld Individual/FICA';         data = (normalize-data $result_taxes_withheld_individual_fica).ForEach({                $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
 
-                @{ label = "Cash FTD's Received (Table IV)";       data = (normalize-data $result_cash_ftds_received_table_iv   ).ForEach({ $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }
-                @{ label = 'Taxes - Withheld Individual/FICA';     data = (normalize-data $result_taxes_withheld_individual_fica).ForEach({ $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }
-
-                @{ label = 'SSA - Benefits Payments';                  data = $result_ssa_benefits.data.ForEach({                     negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }                
-                @{ label = 'HHS - Federal Supple Med Insr Trust Fund'; data = $result_hhs_fed_sup.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }                
-                @{ label = 'HHS - Federal Hospital Insr Trust Fund';   data = $result_hhs_fed_hos.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }                
-                @{ label = 'Interest on Treasury Securities';          data = $result_interest_on_treasury_securities.data.ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }                                
-                @{ label = 'Taxes - Individual Tax Refunds (EFT)';     data = $result_taxes_individual_tax_refunds_.ForEach({         negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $false }                                
-
+                @{ label = 'SSA - Benefits Payments';                  data =                 $result_ssa_benefits.data.ForEach({                     negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = 'HHS - Federal Supple Med Insr Trust Fund'; data =                 $result_hhs_fed_sup.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = 'HHS - Federal Hospital Insr Trust Fund';   data =                 $result_hhs_fed_hos.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = 'Interest on Treasury Securities';          data =                 $result_interest_on_treasury_securities.data.ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = 'Taxes - Individual Tax Refunds (EFT)';     data = (normalize-data $result_taxes_individual_tax_refunds).ForEach({         negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = 'Defense Vendor Payments (EFT)';            data =                 $result_defense_vendor_payments.data.ForEach({          negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
                 
             )
         }
         options = @{
-            # title = @{ display = $true; text = 'Issues' }
-            scales = @{ }
+            title = @{ display = $true; text = 'Treasury General Account' }
+           
+            scales = @{ 
+                # yAxes = @(@{ stacked = $true }) 
+            }
         }
     }
 } | ConvertTo-Json -Depth 100
