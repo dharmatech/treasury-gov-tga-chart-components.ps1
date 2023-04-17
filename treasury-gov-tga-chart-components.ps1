@@ -2,6 +2,11 @@
 
 $rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1}&fields=record_date,transaction_today_amt&page[number]=1&page[size]=300'
 
+
+# $rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1},transaction_type:eq:Deposits&fields=transaction_type,record_date,transaction_today_amt&page[number]=1&page[size]=300'
+
+
+
 # ----------------------------------------------------------------------
 
 # $date = '2022-04-01'
@@ -38,10 +43,12 @@ $rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1}&fie
 
 # $date = '2022-01-01'
 
-$date = '2022-05-01'
+# $date = '2022-05-01'
+
+$date = '2023-01-01'
 
 # $date = '2022-08-01'
-
+# ----------------------------------------------------------------------
 # Deposits
 
 $result_pdci_a             = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:Public Debt Cash Issues (Table III-B)&page[number]=1&page[size]=300' -f $date) 
@@ -58,6 +65,14 @@ $result_federal_reserve_earnings = Invoke-RestMethod -Method Get -Uri ($base + '
 
 $result_cash_ftds_received_table_iv = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1}&fields=record_date,transaction_today_amt&page[number]=1&page[size]=300' -f $date, "Cash FTD's Received (Table IV)") 
 
+$result_public_debt_cash_issues_table_iiib = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Public Debt Cash Issues (Table IIIB)')
+
+$result_taxes_corporate_income                 = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Corporate Income')
+$result_taxes_non_withheld_ind_seca_other      = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Non Withheld Ind/SECA Other')
+$result_taxes_non_withheld_ind_seca_electronic = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Non Withheld Ind/SECA Electronic')
+$result_taxes_miscellaneous_excise             = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Miscellaneous Excise')
+
+# ----------------------------------------------------------------------
 # Withdrawals
 
 $result_pdcr_a             = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:Public Debt Cash Redemp. (Table III-B)&page[number]=1&page[size]=300' -f $date) 
@@ -70,12 +85,25 @@ $result_ssa_benefits = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2
 $result_hhs_fed_sup = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:HHS - Federal Supple Med Insr Trust Fund&fields=record_date,transaction_today_amt&page[number]=1&page[size]=300' -f $date) 
 $result_hhs_fed_hos = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:HHS - Federal Hospital Insr Trust Fund&fields=record_date,transaction_today_amt&page[number]=1&page[size]=300' -f $date) 
 
+$result_public_debt_cash_redemp_table_iiib = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Public Debt Cash Redemp. (Table IIIB)')
+$result_interest_on_treasury_securities     = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Interest on Treasury Securities') 
+$result_taxes_individual_tax_refunds        = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Individual Tax Refunds (EFT)') 
+$result_taxes_withheld_individual_fica      = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Withheld Individual/FICA')
+$result_defense_vendor_payments             = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Defense Vendor Payments (EFT)')
 
-$result_interest_on_treasury_securities = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Interest on Treasury Securities') 
-$result_taxes_individual_tax_refunds    = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Individual Tax Refunds (EFT)') 
-$result_taxes_withheld_individual_fica  = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Withheld Individual/FICA')
-$result_defense_vendor_payments         = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Defense Vendor Payments (EFT)')
 
+$result_hhs_grants_to_states_for_medicaid = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'HHS - Grants to States for Medicaid')
+
+
+
+$rest_url_alt = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1}&fields=transaction_type,record_date,transaction_today_amt&page[number]=1&page[size]=600'
+
+# $rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1},transaction_type:eq:Deposits&fields=transaction_type,record_date,transaction_today_amt&page[number]=1&page[size]=300'
+
+$result_federal_deposit_insurance_corp_fdic = Invoke-RestMethod -Method Get -Uri ($base + $rest_url_alt -f $date, 'Federal Deposit Insurance Corp (FDIC)')
+
+$result_federal_deposit_insurance_corp_fdic_deposits    = $result_federal_deposit_insurance_corp_fdic.data | Where-Object transaction_type -EQ Deposits
+$result_federal_deposit_insurance_corp_fdic_withdrawals = $result_federal_deposit_insurance_corp_fdic.data | Where-Object transaction_type -EQ Withdrawals
 
 
 $result_sub_total_withdrawals = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:Sub-Total Withdrawals&page[number]=1&page[size]=300' -f $date) 
@@ -148,34 +176,95 @@ function normalize-data ($obj)
 }
 # ----------------------------------------------------------------------
 
+$colors = @(
+    "#4E79A7"
+    "#F28E2B"
+    "#E15759"
+    "#76B7B2"
+    "#59A14F"
+    "#EDC948"
+    "#B07AA1"
+    "#FF9DA7"
+    "#9C755F"
+    "#BAB0AC"
+  # "#FFFFFF"
+    "#000000"
+
+    # "#c47c5e"
+    # "#522426"
+
+    # '#00429d'
+    # '#3761ab'
+    # '#5681b9'
+    # '#73a2c6'
+    # '#93c4d2'
+    # '#b9e5dd'
+    # '#ffffe0'
+    # '#ffd3bf'
+    # '#ffa59e'
+    # '#f4777f'
+    # '#dd4c65'
+    # '#be214d'
+    # '#93003a'
+
+)
+
+
+$i = 0
+
+
 $fill = $false
 
 $json = @{
     chart = @{
-        type = 'line'
-        # type = 'bar'
+        # type = 'line'
+        type = 'bar'
         data = @{
             labels = $result_pdc_change.ForEach({ $_.record_date })
             datasets = @(
-                @{ label = 'Public Debt Cash Change';                  data =                 $result_pdc_change.ForEach({                                     $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
-                @{ label = 'Sub-total Change';                         data =                 $result_sub_total_change.ForEach({                               $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
-                @{ label = "Cash FTD's Received (Table IV)";           data = (normalize-data $result_cash_ftds_received_table_iv   ).ForEach({                $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
-                @{ label = 'Taxes - Withheld Individual/FICA';         data = (normalize-data $result_taxes_withheld_individual_fica).ForEach({                $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
 
-                @{ label = 'SSA - Benefits Payments';                  data =                 $result_ssa_benefits.data.ForEach({                     negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
-                @{ label = 'HHS - Federal Supple Med Insr Trust Fund'; data =                 $result_hhs_fed_sup.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
-                @{ label = 'HHS - Federal Hospital Insr Trust Fund';   data =                 $result_hhs_fed_hos.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
-                @{ label = 'Interest on Treasury Securities';          data =                 $result_interest_on_treasury_securities.data.ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
-                @{ label = 'Taxes - Individual Tax Refunds (EFT)';     data = (normalize-data $result_taxes_individual_tax_refunds).ForEach({         negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
-                @{ label = 'Defense Vendor Payments (EFT)';            data =                 $result_defense_vendor_payments.data.ForEach({          negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                # DEPOSITS
+
+              # @{ label = 'Public Debt Cash Change';                     data =                 $result_pdc_change.ForEach({                                     $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+                @{ label = 'Public Debt Cash Issues (Table IIIB)';        data = (normalize-data $result_public_debt_cash_issues_table_iiib).ForEach({            $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count]; hidden = $true }                
+              # @{ label = 'Sub-total Change';                            data =                 $result_sub_total_change.ForEach({                               $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill }
+
+                @{ label = 'Federal Deposit Insurance Corp (FDIC) [dep]'; data = (               $result_federal_deposit_insurance_corp_fdic_deposits).ForEach({  $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                
+                @{ label = "Cash FTD's Received (Table IV)";              data = (normalize-data $result_cash_ftds_received_table_iv   ).ForEach({                $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'Taxes - Withheld Individual/FICA';            data = (normalize-data $result_taxes_withheld_individual_fica).ForEach({                $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'Taxes - Corporate Income';                    data = (normalize-data $result_taxes_corporate_income).ForEach({                        $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'Taxes - Non Withheld Ind/SECA Other';         data = (normalize-data $result_taxes_non_withheld_ind_seca_other).ForEach({             $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'Taxes - Non Withheld Ind/SECA Electronic';    data = (normalize-data $result_taxes_non_withheld_ind_seca_electronic).ForEach({        $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'Taxes - Miscellaneous Excise';                data = (normalize-data $result_taxes_miscellaneous_excise).ForEach({                    $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }                
+                
+                # WITHDRAWALS
+
+                @{ label = 'Public Debt Cash Redemp. (Table IIIB)';    data = (normalize-data $result_public_debt_cash_redemp_table_iiib).ForEach({   negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count]; hidden = $true }
+                
+                @{ label = 'SSA - Benefits Payments';                  data =                 $result_ssa_benefits.data.ForEach({                     negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'HHS - Federal Supple Med Insr Trust Fund'; data =                 $result_hhs_fed_sup.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'HHS - Federal Hospital Insr Trust Fund';   data =                 $result_hhs_fed_hos.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'Interest on Treasury Securities';          data =                 $result_interest_on_treasury_securities.data.ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'Taxes - Individual Tax Refunds (EFT)';     data = (normalize-data $result_taxes_individual_tax_refunds).ForEach({         negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                @{ label = 'Defense Vendor Payments (EFT)';            data =                 $result_defense_vendor_payments.data.ForEach({          negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }                
+                @{ label = 'Federal Deposit Insurance Corp (FDIC) [wit]';    data = ($result_federal_deposit_insurance_corp_fdic_withdrawals).ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+
+                @{ label = 'HHS - Grants to States for Medicaid';      data =                 $result_hhs_grants_to_states_for_medicaid.data.ForEach({ negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+
+                # $result_hhs_grants_to_states_for_medicaid = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'HHS - Grants to States for Medicaid')
+
+
+                # $result_federal_deposit_insurance_corp_fdic = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Federal Deposit Insurance Corp (FDIC)')
                 
             )
         }
         options = @{
             title = @{ display = $true; text = 'Treasury General Account' }
-           
+            legend = @{ position = 'left' }
             scales = @{ 
-                # yAxes = @(@{ stacked = $true }) 
+                xAxes = @(@{ stacked = $true }) 
+                yAxes = @(@{ stacked = $true }) 
             }
         }
     }
