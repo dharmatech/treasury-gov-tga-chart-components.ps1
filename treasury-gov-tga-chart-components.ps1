@@ -1,43 +1,10 @@
-﻿$base = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/dts'
+﻿
+$base = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/dts'
 
 $rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1}&fields=record_date,transaction_today_amt&page[number]=1&page[size]=300'
 
 
 # $rest_url = '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1},transaction_type:eq:Deposits&fields=transaction_type,record_date,transaction_today_amt&page[number]=1&page[size]=300'
-
-
-
-# ----------------------------------------------------------------------
-
-# $date = '2022-04-01'
-
-# $date = '2022-09-01'
-
-# $date = '2022-12-15'
-# $date = '2022-12-16'
-# $date = '2022-12-19'
-
-# $result_raw = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:eq:{0}&page[number]=1&page[size]=300' -f $date)
-# 
-# foreach ($row in $result_raw.data)
-# {
-#     $row.transaction_fytd_amt  = [decimal]$row.transaction_fytd_amt
-#     $row.transaction_today_amt = [decimal]$row.transaction_today_amt
-# }
-# 
-# $result_raw.data | ft *
-# 
-# $result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending | ft *
-# $result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | ft *
-# 
-# $result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_fytd_amt -Descending | ft *
-# $result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_fytd_amt -Descending | ft *
-# 
-# $result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_today_amt -Descending | Select-Object -First 10 | ft *
-# $result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_today_amt -Descending | Select-Object -First 10 | ft *
-# 
-# $result_raw.data | Where-Object transaction_type -EQ Deposits    | Sort-Object transaction_fytd_amt -Descending | Select-Object -First 10 | ft *
-# $result_raw.data | Where-Object transaction_type -EQ Withdrawals | Sort-Object transaction_fytd_amt -Descending | Select-Object -First 10 | ft *
 
 # ----------------------------------------------------------------------
 
@@ -58,8 +25,8 @@ $result_pdci = $result_pdci_a.data + $result_pdci_b.data
 
 $result_sub_total_deposits = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:Sub-Total Deposits&page[number]=1&page[size]=300' -f $date) 
 
-$result_income_taxes             = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:gte:Individual Income,transaction_catg:lt:Int&page[number]=1&page[size]=300' -f $date) 
-$result_federal_reserve_earnings = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:Federal Reserve Earnings&fields=record_date,transaction_today_amt&page[number]=1&page[size]=300' -f $date) 
+# $result_income_taxes             = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:gte:Individual Income,transaction_catg:lt:Int&page[number]=1&page[size]=300' -f $date) 
+# $result_federal_reserve_earnings = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:Federal Reserve Earnings&fields=record_date,transaction_today_amt&page[number]=1&page[size]=300' -f $date) 
 
 # $result_federal_tax_deposits = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?filter=record_date:gte:{0},transaction_catg:eq:{1}&fields=record_date,transaction_today_amt&page[number]=1&page[size]=300' -f $date, "Cash FTD's Received (Table IV)") 
 
@@ -89,10 +56,29 @@ $result_public_debt_cash_redemp_table_iiib = Invoke-RestMethod -Method Get -Uri 
 $result_interest_on_treasury_securities     = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Interest on Treasury Securities') 
 $result_taxes_individual_tax_refunds        = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Individual Tax Refunds (EFT)') 
 $result_taxes_withheld_individual_fica      = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Withheld Individual/FICA')
-$result_defense_vendor_payments             = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Defense Vendor Payments (EFT)')
+# $result_defense_vendor_payments             = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Defense Vendor Payments (EFT)')
 
 
-$result_hhs_grants_to_states_for_medicaid = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'HHS - Grants to States for Medicaid')
+# $result_hhs_grants_to_states_for_medicaid = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'HHS - Grants to States for Medicaid')
+
+
+
+# ----------------------------------------------------------------------
+
+$withdrawals = @{}
+
+# $withdrawals['Defense Vendor Payments (EFT)']       = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Defense Vendor Payments (EFT)')
+# $withdrawals['HHS - Grants to States for Medicaid'] = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'HHS - Grants to States for Medicaid')
+
+function register-withdrawal ($label)
+{
+    $withdrawals[$label] = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, $label)
+}
+
+register-withdrawal 'Defense Vendor Payments (EFT)'
+register-withdrawal 'HHS - Grants to States for Medicaid'
+
+# ----------------------------------------------------------------------
 
 
 
@@ -215,6 +201,33 @@ $i = 0
 
 $fill = $false
 
+
+
+function create-dataset-withdrawal ($label)
+{
+    @{ 
+        label = $label
+        
+        data = $withdrawals[$label].data.ForEach({ negative $_.transaction_today_amt })
+                
+        spanGaps = $true
+        
+        lineTension = 0
+        
+        fill = $fill
+        
+        backgroundColor = $colors[$Global:i++ % $colors.Count] 
+    }
+}
+
+# $label = 'HHS - Grants to States for Medicaid'
+
+# $withdrawals[$label]
+
+# @{ label = 'HHS - Grants to States for Medicaid';      data =                 $result_hhs_grants_to_states_for_medicaid.data.ForEach({ negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+
+
+
 $json = @{
     chart = @{
         # type = 'line'
@@ -247,10 +260,18 @@ $json = @{
                 @{ label = 'HHS - Federal Hospital Insr Trust Fund';   data =                 $result_hhs_fed_hos.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
                 @{ label = 'Interest on Treasury Securities';          data =                 $result_interest_on_treasury_securities.data.ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
                 @{ label = 'Taxes - Individual Tax Refunds (EFT)';     data = (normalize-data $result_taxes_individual_tax_refunds).ForEach({         negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
-                @{ label = 'Defense Vendor Payments (EFT)';            data =                 $result_defense_vendor_payments.data.ForEach({          negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }                
+                # @{ label = 'Defense Vendor Payments (EFT)';            data =                 $result_defense_vendor_payments.data.ForEach({          negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }                
+
+                (create-dataset-withdrawal 'Defense Vendor Payments (EFT)')
+
                 @{ label = 'Federal Deposit Insurance Corp (FDIC) [wit]';    data = ($result_federal_deposit_insurance_corp_fdic_withdrawals).ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
 
-                @{ label = 'HHS - Grants to States for Medicaid';      data =                 $result_hhs_grants_to_states_for_medicaid.data.ForEach({ negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+                # @{ label = 'HHS - Grants to States for Medicaid';      data =                 $result_hhs_grants_to_states_for_medicaid.data.ForEach({ negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+
+
+                (create-dataset-withdrawal 'HHS - Grants to States for Medicaid')
+
+
 
                 # $result_hhs_grants_to_states_for_medicaid = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'HHS - Grants to States for Medicaid')
 
