@@ -38,6 +38,7 @@ $result_taxes_corporate_income                 = Invoke-RestMethod -Method Get -
 $result_taxes_non_withheld_ind_seca_other      = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Non Withheld Ind/SECA Other')
 $result_taxes_non_withheld_ind_seca_electronic = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Non Withheld Ind/SECA Electronic')
 $result_taxes_miscellaneous_excise             = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Miscellaneous Excise')
+$result_taxes_withheld_individual_fica         = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Withheld Individual/FICA')
 
 # ----------------------------------------------------------------------
 # Withdrawals
@@ -55,17 +56,25 @@ $result_hhs_fed_hos = Invoke-RestMethod -Method Get -Uri ($base + '/dts_table_2?
 $result_public_debt_cash_redemp_table_iiib = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Public Debt Cash Redemp. (Table IIIB)')
 $result_interest_on_treasury_securities     = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Interest on Treasury Securities') 
 $result_taxes_individual_tax_refunds        = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Individual Tax Refunds (EFT)') 
-$result_taxes_withheld_individual_fica      = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Taxes - Withheld Individual/FICA')
+
 # $result_defense_vendor_payments             = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Defense Vendor Payments (EFT)')
 
 
 # $result_hhs_grants_to_states_for_medicaid = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'HHS - Grants to States for Medicaid')
 
+# ----------------------------------------------------------------------
+$deposits = @{}
 
+function register-deposit ($label)
+{
+    $deposits[$label] = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, $label)
+}
+
+# register-deposit ''
 
 # ----------------------------------------------------------------------
 
-$withdrawals = @{}
+$withdrawals = [ordered]@{}
 
 # $withdrawals['Defense Vendor Payments (EFT)']       = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Defense Vendor Payments (EFT)')
 # $withdrawals['HHS - Grants to States for Medicaid'] = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'HHS - Grants to States for Medicaid')
@@ -77,6 +86,28 @@ function register-withdrawal ($label)
 
 register-withdrawal 'Defense Vendor Payments (EFT)'
 register-withdrawal 'HHS - Grants to States for Medicaid'
+register-withdrawal 'Federal Salaries (EFT)'
+register-withdrawal 'Other Withdrawals'
+register-withdrawal 'Taxes - Business Tax Refunds (EFT)'
+register-withdrawal 'Dept of Education (ED)'
+register-withdrawal 'USDA - Supp Nutrition Assist Prog (SNAP)'
+register-withdrawal 'Dept of Energy (DOE)'
+register-withdrawal 'USDA - Child Nutrition'
+register-withdrawal 'OPM - Federal Employee Insurance Payment'
+register-withdrawal 'Dept of Veterans Affairs (VA)'
+register-withdrawal 'HHS - National Institutes of Health'
+register-withdrawal 'Postal Service Money Orders and Other'
+register-withdrawal 'DOT - Federal Highway Administration'
+register-withdrawal 'HHS - Payments to States'
+# register-withdrawal 'Dept of Treasury (TREAS) - misc'
+register-withdrawal 'DHS - Fed Emergency Mgmt Agency (FEMA)'
+# register-withdrawal 'HHS - Othr Admin for Children & Families'
+# register-withdrawal 'DHS - Customs & Border Protection (CBP)'
+# register-withdrawal 'Federal Communications Commission (FCC)'
+# register-withdrawal 'Dept of Housing & Urban Dev (HUD) - misc'
+register-withdrawal 'Dept of Justice (DOJ)'
+# register-withdrawal 'Dept of Interior (DOI) - misc'
+# register-withdrawal 'Dept of Labor (DOL) - misc'
 
 # ----------------------------------------------------------------------
 
@@ -208,7 +239,9 @@ function create-dataset-withdrawal ($label)
     @{ 
         label = $label
         
-        data = $withdrawals[$label].data.ForEach({ negative $_.transaction_today_amt })
+        # data = $withdrawals[$label].data.ForEach({ negative $_.transaction_today_amt })
+
+        data = (normalize-data $withdrawals[$label]).ForEach({ negative $_.transaction_today_amt })
                 
         spanGaps = $true
         
@@ -227,6 +260,13 @@ function create-dataset-withdrawal ($label)
 # @{ label = 'HHS - Grants to States for Medicaid';      data =                 $result_hhs_grants_to_states_for_medicaid.data.ForEach({ negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
 
 
+# $withdrawals.Keys | ForEach-Object { create-dataset-withdrawal $_ }
+
+# @(
+#     @{ label = 'HHS - Federal Hospital Insr Trust Fund';   data =                 $result_hhs_fed_hos.data.ForEach({                      negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+#     @{ label = 'Interest on Treasury Securities';          data =                 $result_interest_on_treasury_securities.data.ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
+# ) + 
+# ($withdrawals.Keys | ForEach-Object { create-dataset-withdrawal $_ })
 
 $json = @{
     chart = @{
@@ -262,14 +302,14 @@ $json = @{
                 @{ label = 'Taxes - Individual Tax Refunds (EFT)';     data = (normalize-data $result_taxes_individual_tax_refunds).ForEach({         negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
                 # @{ label = 'Defense Vendor Payments (EFT)';            data =                 $result_defense_vendor_payments.data.ForEach({          negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }                
 
-                (create-dataset-withdrawal 'Defense Vendor Payments (EFT)')
+                # (create-dataset-withdrawal 'Defense Vendor Payments (EFT)')
 
                 @{ label = 'Federal Deposit Insurance Corp (FDIC) [wit]';    data = ($result_federal_deposit_insurance_corp_fdic_withdrawals).ForEach({  negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
 
                 # @{ label = 'HHS - Grants to States for Medicaid';      data =                 $result_hhs_grants_to_states_for_medicaid.data.ForEach({ negative $_.transaction_today_amt }); spanGaps = $true; lineTension = 0; fill = $fill; backgroundColor = $colors[$Global:i++ % $colors.Count] }
 
 
-                (create-dataset-withdrawal 'HHS - Grants to States for Medicaid')
+                # (create-dataset-withdrawal 'HHS - Grants to States for Medicaid')
 
 
 
@@ -278,7 +318,7 @@ $json = @{
 
                 # $result_federal_deposit_insurance_corp_fdic = Invoke-RestMethod -Method Get -Uri ($base + $rest_url -f $date, 'Federal Deposit Insurance Corp (FDIC)')
                 
-            )
+            ) + ($withdrawals.Keys | ForEach-Object { create-dataset-withdrawal $_ })
         }
         options = @{
             title = @{ display = $true; text = 'Treasury General Account' }
